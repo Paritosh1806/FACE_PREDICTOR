@@ -17,24 +17,23 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
-# ---------------------------
+# -----------------------------------
 # Face Detection Function
-# ---------------------------
+# -----------------------------------
 def detect_faces(image):
-    """
-    Detect faces using OpenCV Haar Cascade
-    """
     img_np = np.array(image)
 
-    # Convert RGB to BGR for OpenCV
+    # Convert RGB to BGR
     img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
 
+    # Load Haar Cascade
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     )
 
+    # Detect Faces
     faces = face_cascade.detectMultiScale(
         gray,
         scaleFactor=1.1,
@@ -45,6 +44,7 @@ def detect_faces(image):
     face_images = []
 
     for (x, y, w, h) in faces:
+
         padding = int(0.2 * w)
 
         x1 = max(x - padding, 0)
@@ -53,18 +53,17 @@ def detect_faces(image):
         y2 = min(y + h + padding, img_cv.shape[0])
 
         face = image.crop((x1, y1, x2, y2))
+
         face_images.append(face)
 
     return face_images, faces
 
 
-# ---------------------------
-# Collage Function
-# ---------------------------
+# -----------------------------------
+# Create Collage Function
+# -----------------------------------
 def create_collage(face_images, size=(200, 200), cols=3):
-    """
-    Create a collage from face images
-    """
+
     processed_faces = []
 
     for img in face_images:
@@ -76,34 +75,48 @@ def create_collage(face_images, size=(200, 200), cols=3):
     collage_width = cols * size[0]
     collage_height = rows * size[1]
 
-    collage = Image.new("RGB", (collage_width, collage_height), color="white")
+    collage = Image.new(
+        "RGB",
+        (collage_width, collage_height),
+        color="white"
+    )
 
     for index, face in enumerate(processed_faces):
+
         x = (index % cols) * size[0]
         y = (index // cols) * size[1]
+
         collage.paste(face, (x, y))
 
     return collage
 
 
-# ---------------------------
-# Main Logic
-# ---------------------------
+# -----------------------------------
+# Main App
+# -----------------------------------
 if uploaded_file is not None:
 
     image = Image.open(uploaded_file).convert("RGB")
 
-    st.image(image, caption="Uploaded Image", use_container_width=True)
+    st.image(
+        image,
+        caption="Uploaded Image",
+        use_container_width=True
+    )
 
     with st.spinner("Detecting faces..."):
         face_images, faces = detect_faces(image)
 
-    # Draw bounding boxes
+    # Draw rectangles around faces
     preview = image.copy()
     draw = ImageDraw.Draw(preview)
 
     for (x, y, w, h) in faces:
-        draw.rectangle((x, y, x + w, y + h), outline="red", width=4)
+        draw.rectangle(
+            (x, y, x + w, y + h),
+            outline="red",
+            width=4
+        )
 
     st.image(
         preview,
@@ -113,7 +126,9 @@ if uploaded_file is not None:
 
     if len(face_images) == 0:
         st.warning("No human faces detected.")
+
     else:
+
         st.success(f"{len(face_images)} face(s) detected.")
 
         if st.button("Create Collage"):
@@ -126,10 +141,11 @@ if uploaded_file is not None:
                 use_container_width=True
             )
 
-            # ---------------------------
+            # -----------------------------------
             # Download JPG
-            # ---------------------------
+            # -----------------------------------
             jpg_buffer = BytesIO()
+
             collage.save(jpg_buffer, format="JPEG")
 
             st.download_button(
@@ -139,13 +155,14 @@ if uploaded_file is not None:
                 mime="image/jpeg"
             )
 
-            # ---------------------------
+            # -----------------------------------
             # Download PDF
-            # ---------------------------
+            # -----------------------------------
             pdf_buffer = BytesIO()
 
-            rgb_collage = collage.convert("RGB")
-            rgb_collage.save(pdf_buffer, format="PDF")
+            collage_rgb = collage.convert("RGB")
+
+            collage_rgb.save(pdf_buffer, format="PDF")
 
             st.download_button(
                 label="⬇ Download as PDF",
